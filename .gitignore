@@ -1,0 +1,19 @@
+# Virtual environment
+venv/
+
+# Datasets
+CarDD_COCO/
+vehicle_damage_yolo/
+
+# Training / conversion scripts
+coco_to_yolo.py
+
+# Jupyter notebooks
+*.ipynb
+
+# Python cache
+__pycache__/
+*.pyc
+
+# OS files
+.DS_Store
