@@ -46,7 +46,7 @@ jobs:
             ps aux | grep uvicorn | grep -v grep | awk '{print $2}' | xargs -r sudo kill -9
 
             echo "Starting FastAPI..."
-            nohup uvicorn main:app --host 0.0.0.0 --port 8000 > log.txt 2>&1 &
+            nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 > log.txt 2>&1 &
 
             sleep 5
             tail -n 50 log.txt || true
