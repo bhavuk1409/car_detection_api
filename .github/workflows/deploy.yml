@@ -18,24 +18,22 @@ jobs:
         script: |
           echo "🚀 Starting deployment..."
 
-          # Go to home
           cd ~ || exit
 
-          # Clone if not exists
+          # Clone repo (with token) if not exists
           if [ ! -d "car-detection" ]; then
-            git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git car-detection
+            git clone https://${{ secrets.GH_TOKEN }}@github.com/bhavuk1409/car_detection_api.git car-detection
           fi
 
           cd car-detection || exit
 
           echo "🔄 Pulling latest code..."
-          git pull origin main
+          git pull https://${{ secrets.GH_TOKEN }}@github.com/bhavuk1409/car_detection_api.git main
 
-          echo "🐍 Setting up Python env..."
-          sudo apt update
+          echo "🐍 Setting up Python..."
+          sudo apt update -y
           sudo apt install -y python3-pip python3-venv
 
-          # Create virtual env if not exists
           if [ ! -d "venv" ]; then
             python3 -m venv venv
           fi
