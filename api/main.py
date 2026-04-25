@@ -7,6 +7,7 @@ from api.severity_rules import compute_severity
 app = FastAPI(title="Vehicle Damage Detection API")
 
 
+
 @app.post("/predict", response_model=PredictionResponse)
 async def predict(file: UploadFile = File(...)):
     # Read image
