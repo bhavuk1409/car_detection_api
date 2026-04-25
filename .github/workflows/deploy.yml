@@ -9,55 +9,55 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Deploy to EC2 via SSH
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USER }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          echo "🚀 Starting deployment..."
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set +e
 
-          cd ~ || exit
+            echo "Starting deployment..."
 
-          echo "🧹 Cleaning space..."
-          sudo rm -rf car_detection_api || true
-          sudo rm -rf ~/.cache/pip || true
-          sudo apt clean || true
-          sudo apt autoremove -y || true
+            cd ~ || exit
 
-          echo "📥 Cloning repo..."
-          git clone https://${{ secrets.GH_TOKEN }}@github.com/bhavuk1409/car_detection_api.git
-          cd car_detection_api || exit
+            echo "Cleaning space..."
+            sudo rm -rf car_detection_api || true
+            sudo rm -rf ~/.cache/pip || true
+            sudo apt clean || true
+            sudo apt autoremove -y || true
 
-          echo "🐍 Setting up Python..."
-          sudo apt update -y
-          sudo apt install -y python3-pip python3-venv
+            echo "Cloning repo..."
+            git clone https://${{ secrets.GH_TOKEN }}@github.com/bhavuk1409/car_detection_api.git
+            cd car_detection_api || exit
 
-          python3 -m venv venv
-          source venv/bin/activate
+            echo "Setting up Python..."
+            sudo apt update -y
+            sudo apt install -y python3-pip python3-venv
 
-          echo "📦 Installing dependencies..."
+            python3 -m venv venv
+            source venv/bin/activate
 
-          pip install --upgrade pip
+            echo "Installing dependencies..."
+            pip install --upgrade pip
 
-          # ✅ FORCE CPU VERSION OF TORCH (NO CUDA)
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+            # CPU torch (no CUDA)
+            pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-          # prevent GPU usage
-          export CUDA_VISIBLE_DEVICES=""
+            export CUDA_VISIBLE_DEVICES=""
 
-          # install remaining dependencies
-          pip install -r requirements.txt --no-cache-dir
+            pip install -r requirements.txt --no-cache-dir
 
-          echo "🛑 Stopping old server..."
-          pkill -f uvicorn || true
+            echo "Stopping old server..."
+            sudo pkill -f uvicorn || true
+            sleep 2
 
-          echo "🚀 Starting FastAPI..."
-          nohup uvicorn main:app --host 0.0.0.0 --port 8000 > log.txt 2>&1 &
+            echo "Starting FastAPI..."
+            nohup uvicorn main:app --host 0.0.0.0 --port 8000 > log.txt 2>&1 &
 
-          echo "📜 Logs:"
-          sleep 5
-          tail -n 50 log.txt || true
+            echo "Showing logs..."
+            sleep 5
+            tail -n 50 log.txt || true
 
-          echo "✅ Deployment complete!"
+            echo "Deployment done!"
