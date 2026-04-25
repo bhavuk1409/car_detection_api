@@ -18,46 +18,35 @@ jobs:
           script: |
             set +e
 
-            echo "Starting deployment..."
+            cd ~
 
-            cd ~ || exit
+            sudo rm -rf car_detection_api
+            sudo rm -rf ~/.cache/pip
+            sudo apt clean
+            sudo apt autoremove -y
 
-            echo "Cleaning space..."
-            sudo rm -rf car_detection_api || true
-            sudo rm -rf ~/.cache/pip || true
-            sudo apt clean || true
-            sudo apt autoremove -y || true
-
-            echo "Cloning repo..."
             git clone https://${{ secrets.GH_TOKEN }}@github.com/bhavuk1409/car_detection_api.git
-            cd car_detection_api || exit
+            cd car_detection_api
 
-            echo "Setting up Python..."
             sudo apt update -y
             sudo apt install -y python3-pip python3-venv
 
             python3 -m venv venv
             source venv/bin/activate
 
-            echo "Installing dependencies..."
             pip install --upgrade pip
 
-            # CPU torch (no CUDA)
             pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
             export CUDA_VISIBLE_DEVICES=""
 
             pip install -r requirements.txt --no-cache-dir
 
-            echo "Stopping old server..."
-            sudo pkill -f uvicorn || true
-            sleep 2
+            echo "Stopping old server safely..."
+            ps aux | grep uvicorn | grep -v grep | awk '{print $2}' | xargs -r sudo kill -9
 
             echo "Starting FastAPI..."
             nohup uvicorn main:app --host 0.0.0.0 --port 8000 > log.txt 2>&1 &
 
-            echo "Showing logs..."
             sleep 5
             tail -n 50 log.txt || true
-
-            echo "Deployment done!"
