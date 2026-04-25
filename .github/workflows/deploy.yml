@@ -20,7 +20,7 @@ jobs:
 
           cd ~ || exit
 
-          echo "🧹 Freeing space..."
+          echo "🧹 Cleaning space..."
           sudo rm -rf car_detection_api || true
           sudo rm -rf ~/.cache/pip || true
           sudo apt clean || true
@@ -37,18 +37,17 @@ jobs:
           python3 -m venv venv
           source venv/bin/activate
 
-          echo "📦 Preparing lightweight install..."
+          echo "📦 Installing dependencies..."
 
           pip install --upgrade pip
 
-          # 🔥 remove heavy GPU deps to prevent disk crash
-          sed -i '/torch/d' requirements.txt || true
-          sed -i '/ultralytics/d' requirements.txt || true
+          # ✅ FORCE CPU VERSION OF TORCH (NO CUDA)
+          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
-          # ✅ install CPU torch only
-          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          # prevent GPU usage
+          export CUDA_VISIBLE_DEVICES=""
 
-          # ✅ install remaining deps without cache
+          # install remaining dependencies
           pip install -r requirements.txt --no-cache-dir
 
           echo "🛑 Stopping old server..."
@@ -57,7 +56,7 @@ jobs:
           echo "🚀 Starting FastAPI..."
           nohup uvicorn main:app --host 0.0.0.0 --port 8000 > log.txt 2>&1 &
 
-          echo "📜 Last logs:"
+          echo "📜 Logs:"
           sleep 5
           tail -n 50 log.txt || true
 
