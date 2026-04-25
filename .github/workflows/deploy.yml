@@ -1,37 +1,64 @@
-script: |
-  echo "🚀 Starting deployment..."
+name: FastAPI Deploy (No Docker)
 
-  cd ~ || exit
+on:
+  push:
+    branches: [ main ]
 
-  echo "🧹 Freeing space..."
-  sudo rm -rf car-detection || true
-  sudo rm -rf ~/.cache/pip || true
-  sudo apt clean || true
-  sudo apt autoremove -y || true
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-  echo "📥 Cloning fresh repo..."
-  git clone https://${{ secrets.GH_TOKEN }}@github.com/bhavuk1409/car_detection_api.git car-detection
-  cd car-detection || exit
+    steps:
+    - name: Deploy to EC2 via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          echo "🚀 Starting deployment..."
 
-  echo "🐍 Setup Python..."
-  sudo apt update -y
-  sudo apt install -y python3-pip python3-venv
+          cd ~ || exit
 
-  python3 -m venv venv
-  source venv/bin/activate
+          echo "🧹 Freeing space..."
+          sudo rm -rf car_detection_api || true
+          sudo rm -rf ~/.cache/pip || true
+          sudo apt clean || true
+          sudo apt autoremove -y || true
 
-  echo "📦 Installing dependencies (LIGHT MODE)..."
-  pip install --upgrade pip
+          echo "📥 Cloning repo..."
+          git clone https://${{ secrets.GH_TOKEN }}@github.com/bhavuk1409/car_detection_api.git
+          cd car_detection_api || exit
 
-  # CRITICAL: install CPU torch only
-  pip install torch --index-url https://download.pytorch.org/whl/cpu
+          echo "🐍 Setting up Python..."
+          sudo apt update -y
+          sudo apt install -y python3-pip python3-venv
 
-  pip install -r requirements.txt --no-cache-dir
+          python3 -m venv venv
+          source venv/bin/activate
 
-  echo "🛑 Killing old server..."
-  pkill -f uvicorn || true
+          echo "📦 Preparing lightweight install..."
 
-  echo "🚀 Starting FastAPI..."
-  nohup uvicorn main:app --host 0.0.0.0 --port 8000 > log.txt 2>&1 &
+          pip install --upgrade pip
 
-  echo "✅ Deployment complete!"
+          # 🔥 remove heavy GPU deps to prevent disk crash
+          sed -i '/torch/d' requirements.txt || true
+          sed -i '/ultralytics/d' requirements.txt || true
+
+          # ✅ install CPU torch only
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+          # ✅ install remaining deps without cache
+          pip install -r requirements.txt --no-cache-dir
+
+          echo "🛑 Stopping old server..."
+          pkill -f uvicorn || true
+
+          echo "🚀 Starting FastAPI..."
+          nohup uvicorn main:app --host 0.0.0.0 --port 8000 > log.txt 2>&1 &
+
+          echo "📜 Last logs:"
+          sleep 5
+          tail -n 50 log.txt || true
+
+          echo "✅ Deployment complete!"
